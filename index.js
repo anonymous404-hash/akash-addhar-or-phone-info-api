@@ -1,59 +1,51 @@
-export default async function handler(req, res) {
-  const JSON_URL =
-    "https://github.com/anonymous404-hash/akash-addhar-info-api/releases/download/v1.0/database2.json";
+export const config = {
+  runtime: "edge"
+};
 
-  const aadharNumber = req.query.aadharNumber;
+const JSON_URL =
+  "https://github.com/anonymous404-hash/akash-addhar-info-api/releases/download/v1.0/database2.json";
+
+export default async function handler(req) {
+  const { searchParams } = new URL(req.url);
+  const aadharNumber = searchParams.get("aadharNumber");
 
   if (!aadharNumber) {
-    return res.status(400).json({
+    return new Response(JSON.stringify({
       success: false,
       developer: "AKASHHACKER",
       message: "Please provide aadharNumber"
-    });
+    }), { status: 400 });
   }
 
-  // timeout
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 10000);
-
   try {
-    const response = await fetch(JSON_URL, {
-      signal: controller.signal
-    });
-    clearTimeout(timeout);
+    const res = await fetch(JSON_URL);
+    if (!res.ok) throw new Error("Fetch failed");
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
+    const data = await res.json();
 
-    const data = await response.json();
-
-    // search
     const result = data.find(
-      item => String(item.aadharNumber) === String(aadharNumber)
+      i => String(i.aadharNumber) === String(aadharNumber)
     );
 
     if (!result) {
-      return res.json({
+      return new Response(JSON.stringify({
         success: false,
         developer: "AKASHHACKER",
         message: "No records found"
-      });
+      }));
     }
 
-    return res.json({
+    return new Response(JSON.stringify({
       success: true,
       developer: "AKASHHACKER",
       data: result
-    });
+    }));
 
-  } catch (err) {
-    clearTimeout(timeout);
-    return res.json({
+  } catch (e) {
+    return new Response(JSON.stringify({
       success: false,
       developer: "AKASHHACKER",
-      message: "Database fetch problem",
-      error: err.message
-    });
+      message: "Database fetch problem"
+    }), { status: 500 });
   }
 }
