@@ -26,7 +26,7 @@ app.get("/", (req, res) => {
       search: "/search?aadharNumber=XXXXXXXXXXXX",
       allData: "/all"
     },
-    github: "https://github.com/anonymous404-hash/akash-addhar-info-api"
+    github: ""
   });
 });
 
