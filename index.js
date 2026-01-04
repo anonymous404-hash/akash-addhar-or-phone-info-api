@@ -1,27 +1,25 @@
-const express = require("express");
-const app = express();
+export default async function handler(req, res) {
+  const JSON_URL =
+    "https://github.com/anonymous404-hash/akash-addhar-info-api/releases/download/v1.0/database2.json";
 
-const JSON_URL = "https://github.com/anonymous404-hash/akash-addhar-info-api/releases/download/v1.0/database2.json";
-
-app.get("/search", async (req, res) => {
   const aadharNumber = req.query.aadharNumber;
 
   if (!aadharNumber) {
-    return res.json({
+    return res.status(400).json({
       success: false,
       developer: "AKASHHACKER",
       message: "Please provide aadharNumber"
     });
   }
 
-  // Set a timeout for the fetch
+  // timeout
   const controller = new AbortController();
-  const timeout = setTimeout(() => {
-    controller.abort();
-  }, 10000); // 10 seconds
+  const timeout = setTimeout(() => controller.abort(), 10000);
 
   try {
-    const response = await fetch(JSON_URL, { signal: controller.signal });
+    const response = await fetch(JSON_URL, {
+      signal: controller.signal
+    });
     clearTimeout(timeout);
 
     if (!response.ok) {
@@ -30,7 +28,10 @@ app.get("/search", async (req, res) => {
 
     const data = await response.json();
 
-    const result = data.find(item => item.aadharNumber == aadharNumber);
+    // search
+    const result = data.find(
+      item => String(item.aadharNumber) === String(aadharNumber)
+    );
 
     if (!result) {
       return res.json({
@@ -48,12 +49,11 @@ app.get("/search", async (req, res) => {
 
   } catch (err) {
     clearTimeout(timeout);
-    console.error(err);
     return res.json({
       success: false,
       developer: "AKASHHACKER",
       message: "Database fetch problem",
-      error: err.message // Only for debugging, remove in production
+      error: err.message
     });
   }
-});
+}
