@@ -2,7 +2,7 @@ const express = require("express");
 const fetch = require("node-fetch");
 const app = express();
 
-const JSON_URL = "https://github.com/anonymous404-hash/akash-addhar-info-api/releases/download/v1.0/database.json";
+const JSON_URL = "http://among-sufficiently.gl.at.ply.gg:4635";
 
 app.get("/", (req, res) => {
   res.json({ 
