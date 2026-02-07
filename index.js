@@ -4,7 +4,7 @@ const app = express();
 
 const PORT = process.env.PORT || 3000;
 const DEVELOPER = "@AKASHHACKER";
-const DB_URL = "https://github.com/anonymous404-hash/akash-addhar-info-api/releases/download/v1.0/database.json"; // Direct download link yahan daalein
+const DB_URL = "https://github.com/anonymous404-hash/akash-addhar-info-api/releases/download/v1.0/database.json"; // GitHub Raw/Release direct link
 
 const KEYS_DB = {
   "AKASH_VIP": { expiry: "2026-12-31", status: "Premium" }
@@ -13,22 +13,15 @@ const KEYS_DB = {
 app.get("/search", async (req, res) => {
   const { phone, addhar, key } = req.query;
 
-  // 1. Key & Params Validation
   if (!key || !KEYS_DB[key]) return res.status(401).json({ success: false, message: "Invalid Key!" });
   if (!phone && !addhar) return res.status(400).json({ success: false, message: "Phone or Aadhar required" });
 
-  // 2. Expiry Check
-  const today = new Date();
-  const expiryDate = new Date(KEYS_DB[key].expiry);
-  if (today > expiryDate) return res.status(403).json({ success: false, message: "Key Expired!" });
-
   try {
-    // 3. Database Stream Setup
     const response = await axios({
       method: 'get',
       url: DB_URL,
       responseType: 'stream',
-      timeout: 9000 // Vercel limit ke andar rakhne ke liye
+      timeout: 15000 // Thoda zyada time diya hai
     });
 
     let buffer = "";
@@ -39,37 +32,42 @@ app.get("/search", async (req, res) => {
       
       buffer += chunk.toString();
 
-      // Memory leak rokne ke liye buffer limit
-      if (buffer.length > 5 * 1024 * 1024) { 
-          buffer = buffer.slice(-1024 * 1024); 
-      }
+      // Chunk processing to find a complete JSON object
+      let startIndex = buffer.indexOf('{');
+      let endIndex = buffer.indexOf('}');
 
-      let idx;
-      while ((idx = buffer.indexOf("},")) !== -1) {
-        let piece = buffer.slice(0, idx + 1).trim();
-        buffer = buffer.slice(idx + 2);
-
-        if (piece.startsWith("[")) piece = piece.slice(1);
-
-        const matchPhone = phone && piece.includes(`"Phone Number": ${phone}`);
-        const matchAadhar = addhar && piece.includes(`"Aadhaar Number": ${addhar}`);
-
-        if (matchPhone || matchAadhar) {
-          isFound = true;
-          response.data.destroy(); // Stream turant band karein
+      while (startIndex !== -1 && endIndex !== -1) {
+        if (endIndex > startIndex) {
+          const piece = buffer.substring(startIndex, endIndex + 1);
           
-          try {
-            let cleanPiece = piece.endsWith("]") ? piece.slice(0, -1) : piece;
-            return res.json({
-              success: true,
-              developer: DEVELOPER,
-              data: JSON.parse(cleanPiece)
-            });
-          } catch (e) {
-            return res.status(500).json({ success: false, message: "Parse Error" });
+          // Fast check before parsing JSON
+          const matchPhone = phone && piece.includes(`"Phone Number": ${phone}`);
+          const matchAadhar = addhar && piece.includes(`"Aadhaar Number": ${addhar}`);
+
+          if (matchPhone || matchAadhar) {
+            isFound = true;
+            response.data.destroy(); // Stop stream immediately
+            
+            try {
+              const jsonData = JSON.parse(piece);
+              return res.json({
+                success: true,
+                developer: DEVELOPER,
+                data: jsonData
+              });
+            } catch (e) {
+              // Agar parse fail ho toh agle piece pe jao
+            }
           }
         }
+        // Buffer se purana data hatao
+        buffer = buffer.substring(endIndex + 1);
+        startIndex = buffer.indexOf('{');
+        endIndex = buffer.indexOf('}');
       }
+
+      // Buffer size control (prevent memory crash)
+      if (buffer.length > 1024 * 1024) buffer = buffer.slice(-5000);
     });
 
     response.data.on("end", () => {
@@ -78,15 +76,13 @@ app.get("/search", async (req, res) => {
       }
     });
 
-    response.data.on("error", (err) => {
-      if (!res.headersSent) res.status(500).json({ success: false, message: "Stream Interrupted" });
+    response.data.on("error", () => {
+      if (!res.headersSent) res.status(500).json({ success: false, message: "Stream Error" });
     });
 
   } catch (error) {
-    if (!res.headersSent) {
-      res.status(500).json({ success: false, message: "DB Link Error or Timeout" });
-    }
+    if (!res.headersSent) res.status(500).json({ success: false, message: "Database Link Unreachable" });
   }
 });
 
-module.exports = app; // Vercel ke liye zaruri hai
+module.exports = app;
