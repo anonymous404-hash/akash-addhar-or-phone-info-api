@@ -5,7 +5,7 @@ const PORT = process.env.PORT || 3000;
 
 const DEVELOPER = "@AKASHHACKER";
 // Yahan apna Release Database Direct Download Link daalein
-const DB_URL = "YOUR_DIRECT_RELEASE_LINK_HERE"; 
+const DB_URL = "https://github.com/anonymous404-hash/akash-addhar-info-api/releases/download/v1.0/database.json"; 
 
 const KEYS_DB = {
   "AKASH_VIP": { expiry: "2026-12-31", status: "Premium" }
