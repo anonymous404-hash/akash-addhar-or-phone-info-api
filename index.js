@@ -13,13 +13,16 @@ app.get("/", (req, res) => {
 });
 
 app.get("/search", async (req, res) => {
-  const aadharNumber = req.query.aadharNumber; // /search?aadharNumber=XXXX
+  // Dono query parameters ko check karega
+  const aadharNumber = req.query.aadharNumber;
+  const phoneNumber = req.query.phoneNumber;
 
-  if (!aadharNumber) {
+  // Agar dono khali hain toh error dega
+  if (!aadharNumber && !phoneNumber) {
     return res.json({
       success: false,
       developer: "AKASHHACKER",
-      message: "Please provide aadharNumber"
+      message: "Please provide either aadharNumber or phoneNumber"
     });
   }
 
@@ -27,7 +30,11 @@ app.get("/search", async (req, res) => {
     const response = await fetch(JSON_URL);
     const data = await response.json();
 
-    const result = data.find(item => item.aadharNumber == aadharNumber);
+    // Logic: Agar aadharNumber match ho ya phoneNumber match ho
+    const result = data.find(item => {
+      return (aadharNumber && item.aadharNumber === aadharNumber) || 
+             (phoneNumber && item.phoneNumber === phoneNumber);
+    });
 
     if (!result) {
       return res.json({
@@ -52,4 +59,5 @@ app.get("/search", async (req, res) => {
   }
 });
 
-app.listen(3000, () => console.log("Server Running"));
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`Server Running on port ${PORT}`));
