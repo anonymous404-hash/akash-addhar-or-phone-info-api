@@ -78,7 +78,7 @@ app.get("/search", async (req, res) => {
         // 6. Success Response with Key Info
         return res.json({
             success: true,
-            developer: "AKASHHACKER",
+            developer: "@Akashishare",
             key_details: {
                 expiry_date: foundUser.expiry,
                 days_remaining: daysLeft > 0 ? `${daysLeft} Days` : "Last Day Today",
